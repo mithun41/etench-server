@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Order Success</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f9f9f9;
+        padding: 50px;
+      }
+      .container {
+        max-width: 600px;
+        margin: auto;
+        background: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #28a745;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .highlight {
+        font-weight: bold;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎉 Thank you for your order!</h1>
+      <p>Order ID: <span class="highlight">{{ order.id }}</span></p>
+      <p>Product: <span class="highlight">{{ order.product.name }}</span></p>
+      <p>Quantity: <span class="highlight">{{ order.quantity }}</span></p>
+      <p>
+        Total Price: <span class="highlight">{{ order.total_price }} ৳</span>
+      </p>
+      {% if order.affiliate %}
+      <p>
+        Referral Applied:
+        <span class="highlight">{{ order.affiliate.referral_code }}</span>
+      </p>
+      {% endif %}
+      <p>
+        We will process your order shortly. Check your email for confirmation.
+      </p>
+    </div>
+  </body>
+</html>
