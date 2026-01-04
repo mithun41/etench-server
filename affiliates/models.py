@@ -5,7 +5,6 @@ from django.conf import settings
 
 User = settings.AUTH_USER_MODEL
 
-
 class Affiliate(models.Model):
     user = models.OneToOneField(
         User,
@@ -33,7 +32,6 @@ class Affiliate(models.Model):
     )
 
     is_active = models.BooleanField(default=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -53,3 +51,25 @@ class Affiliate(models.Model):
 
     def __str__(self):
         return f"{self.user} ({self.referral_code})"
+
+    # ✅ Must be inside the class
+    @property
+    def total_commission(self):
+        total = self.commissions.filter(status='pending').aggregate(total=models.Sum('amount'))['total']
+        pending_withdraw = self.withdraw_requests.filter(status__in=['pending', 'approved']).aggregate(total=models.Sum('amount'))['total'] or 0
+        return (total or 0) - pending_withdraw
+
+    def reduce_commission(self, amount):
+        remaining = amount
+        for c in self.commissions.filter(status='pending').order_by('created_at'):
+            if remaining <= 0:
+                break
+            if c.amount <= remaining:
+                remaining -= c.amount
+                c.status = 'paid'
+                c.save()
+            else:
+                c.amount -= remaining
+                c.status = 'paid'
+                c.save()
+                remaining = 0

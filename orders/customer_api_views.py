@@ -1,14 +1,19 @@
-from rest_framework import generics, permissions
+from rest_framework import generics
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from .models import Order
-from .serializers import OrderSerializer
+from decimal import Decimal
+
+from .models import Order, WithdrawRequest
+from .serializers import OrderSerializer, WithdrawRequestSerializer
 from products.models import Product
 from affiliates.models import Affiliate
 
 
 class CustomerOrderListCreateAPI(generics.ListCreateAPIView):
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]  # JWT required
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).order_by('-created_at')
@@ -34,3 +39,32 @@ class CustomerOrderListCreateAPI(generics.ListCreateAPIView):
             status='pending',
             is_paid=False
         )
+
+
+class WithdrawRequestAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        affiliate = getattr(request.user, 'affiliate', None)
+        if not affiliate:
+            return Response({"detail": "You are not an affiliate"}, status=403)
+
+        amount = request.data.get('amount')
+        if not amount:
+            return Response({"detail": "Amount is required"}, status=400)
+
+        # Convert to Decimal for accuracy
+        amount = Decimal(amount)
+
+        # Validate amount <= available commission
+        available = affiliate.total_commission
+        if amount > available:
+            return Response({"detail": "Requested amount exceeds available commission"}, status=400)
+
+        withdraw = WithdrawRequest.objects.create(
+            affiliate=affiliate,
+            amount=amount
+        )
+
+        serializer = WithdrawRequestSerializer(withdraw)
+        return Response(serializer.data, status=201)
