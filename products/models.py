@@ -25,6 +25,8 @@ class Category(models.Model):
         return self.name
 
 
+
+
 class Product(models.Model):
     category = models.ForeignKey(
         Category,
@@ -36,9 +38,18 @@ class Product(models.Model):
     slug = models.SlugField(max_length=160, unique=True)
     description = models.TextField(blank=True, null=True)
 
+    # original price
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2
+    )
+
+    # discounted selling price (optional)
+    discount_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
     )
 
     stock = models.PositiveIntegerField(default=0)
@@ -49,12 +60,10 @@ class Product(models.Model):
         null=True
     )
 
-    # ✅ Product-wise affiliate commission (%)
     commission_rate = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=Decimal('10.00'),
-        help_text="Affiliate commission percentage for this product"
+        default=Decimal('10.00')
     )
 
     is_active = models.BooleanField(default=True)
@@ -73,6 +82,18 @@ class Product(models.Model):
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
+
+    @property
+    def discount_percent(self):
+        """
+        Returns discount percentage as int
+        Example: 4000 -> 3000 = 25%
+        """
+        if self.discount_price and self.discount_price < self.price:
+            return int(
+                ((self.price - self.discount_price) / self.price) * 100
+            )
+        return 0
 
     def __str__(self):
         return self.name
